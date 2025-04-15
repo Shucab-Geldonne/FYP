@@ -18,7 +18,6 @@ from django.contrib import messages
 from sklearn.preprocessing import MinMaxScaler
 from numpy.core.multiarray import _reconstruct
 from numpy.dtypes import Float32DType, Float64DType
-torch.serialization.add_safe_globals([MinMaxScaler, _reconstruct, np.ndarray, np.dtype, Float32DType, Float64DType])
 import joblib
 from .ml_utils import CostPredictor
 from .simple_model import SimpleCostPredictor, train_model, predict
@@ -35,13 +34,26 @@ def initialize_model():
     
     try:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        csv_path = os.path.join(base_dir, 'historical_costs.csv')
         model_path = os.path.join(base_dir, 'predictor', 'models', 'simple_cost_predictor.pth')
         
         # Create models directory if it doesn't exist
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
         
-        print("Training model at startup...")
+        # Check if model file exists
+        if os.path.exists(model_path):
+            print("Loading existing model...")
+            checkpoint = torch.load(model_path)
+            model = SimpleCostPredictor()
+            model.load_state_dict(checkpoint['model_state_dict'])
+            GLOBAL_MODEL = model
+            GLOBAL_X_SCALER = checkpoint['X_scaler']
+            GLOBAL_SCALERS = (checkpoint['rent_scaler'], checkpoint['petrol_scaler'], checkpoint['food_scaler'])
+            print("Model loaded successfully")
+            return True
+        
+        # Only train if model doesn't exist
+        print("Training new model (this will only happen once)...")
+        csv_path = os.path.join(base_dir, 'historical_costs.csv')
         model, X_scaler, scalers = train_model(csv_path)
         
         # Save the model and scalers globally
@@ -49,7 +61,7 @@ def initialize_model():
         GLOBAL_X_SCALER = X_scaler
         GLOBAL_SCALERS = scalers
         
-        # Save to disk as backup
+        # Save to disk
         torch.save({
             'model_state_dict': model.state_dict(),
             'X_scaler': X_scaler,
@@ -213,7 +225,7 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
             selected_year = int(request.POST.get('year'))
             context['selected_year'] = selected_year
             
-            # Check if model is initialized
+            # Use the global model
             if GLOBAL_MODEL is None:
                 if not initialize_model():
                     raise Exception("Failed to initialize model")
@@ -329,11 +341,10 @@ def predict_for_year(request, year):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-@login_required
+@login_required(login_url='/accounts/login/')
 def home(request):
     # Get upcoming events for the next 7 days
     upcoming_events = Event.objects.filter(
-        user=request.user,
         start_date__gte=timezone.now(),
         start_date__lte=timezone.now() + timezone.timedelta(days=7)
     ).order_by('start_date')
