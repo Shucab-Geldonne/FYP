@@ -66,7 +66,7 @@ def train_model(csv_path):
             'Weekly Food Expenditure (£)': [df['Weekly Food Expenditure (£)'].iloc[-1] * 1.03]  # Slight increase
         })
         df = pd.concat([df, new_row], ignore_index=True)
-    
+    # Hello
     # Calculate year-over-year changes for trend learning
     df['Rent_Change'] = df['Average Monthly Rent (England) (£)'].pct_change()
     df['Petrol_Change'] = df['Petrol Price (£/litre)'].pct_change()
