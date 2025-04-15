@@ -1,0 +1,174 @@
+{% extends 'predictor/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Prediction Form -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Make a Prediction</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'predictions' %}">
+                        {% csrf_token %}
+                        <div class="form-group mb-3">
+                            <label for="year">Select Year:</label>
+                            <select class="form-control" id="year" name="year" required>
+                                {% for year in future_years %}
+                                    <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Predict</button>
+                    </form>
+                </div>
+            </div>
+
+            {% if prediction_results %}
+            <div class="card shadow mt-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Prediction Results for {{ selected_year }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0">
+                            <tr>
+                                <th>Monthly Rent</th>
+                                <td>£{{ prediction_results.rent }}</td>
+                            </tr>
+                            <tr>
+                                <th>Petrol Price</th>
+                                <td>£{{ prediction_results.petrol }}/litre</td>
+                            </tr>
+                            <tr>
+                                <th>Weekly Food</th>
+                                <td>£{{ prediction_results.food }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Historical Data -->
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">Historical Data</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-striped table-hover">
+                            <thead class="sticky-top bg-white">
+                                <tr>
+                                    <th>Year</th>
+                                    <th>Monthly Rent</th>
+                                    <th>Petrol Price</th>
+                                    <th>Weekly Food Cost</th>
+                                    <th>% Change (Rent)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in historical_data %}
+                                <tr>
+                                    <td>{{ item.year }}</td>
+                                    <td>£{{ item.rent }}</td>
+                                    <td>£{{ item.petrol }}/litre</td>
+                                    <td>£{{ item.food }}</td>
+                                    <td>
+                                        {% if item.rent_change %}
+                                            {% if item.rent_change > 0 %}
+                                                <span class="text-danger">+{{ item.rent_change }}%</span>
+                                            {% else %}
+                                                <span class="text-success">{{ item.rent_change }}%</span>
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5">
+    {% for message in messages %}
+    <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header {% if message.tags %}bg-{{ message.tags }}{% endif %} text-white">
+            <strong class="me-auto">Message</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            {{ message }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<style>
+    .card {
+        border: none;
+        margin-bottom: 20px;
+    }
+    .card-header {
+        border-bottom: none;
+    }
+    .table th {
+        background-color: #f8f9fa;
+    }
+    .form-control:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .toast {
+        background-color: white;
+    }
+    .toast-header {
+        color: white;
+    }
+    .bg-error {
+        background-color: #dc3545;
+    }
+    .bg-success {
+        background-color: #28a745;
+    }
+    
+    /* Custom scrollbar styles */
+    .table-responsive::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    /* Make the table header sticky */
+    .sticky-top {
+        top: 0;
+        z-index: 1;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %} 

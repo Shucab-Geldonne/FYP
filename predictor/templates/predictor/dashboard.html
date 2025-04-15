@@ -1,0 +1,423 @@
+{% extends 'predictor/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% if messages %}
+    <div class="row mb-4">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">Dashboard</h2>
+        </div>
+    </div>
+
+    <!-- Cost Trends Chart -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Cost Trends (2021-2027)
+                    </h5>
+                </div>
+                <div class="card-body" style="height: 400px;">
+                    <canvas id="costTrendsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Cost-Saving Tips
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Consider energy-efficient appliances
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Use public transportation when possible
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Plan meals to reduce food waste
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Compare utility providers
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Predictions Table -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>Cost Predictions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Year</th>
+                                    <th>Cost</th>
+                                    <th>Change</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prediction in recent_predictions %}
+                                <tr>
+                                    <td>{{ prediction.year }}</td>
+                                    <td>£{{ prediction.cost|floatformat:2 }}</td>
+                                    <td>
+                                        <span class="badge {% if prediction.change > 0 %}bg-danger{% elif prediction.change < 0 %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {{ prediction.change|floatformat:1 }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if prediction.is_prediction %}bg-warning{% else %}bg-info{% endif %}">
+                                            {% if prediction.is_prediction %}Predicted{% else %}Historical{% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calculator me-2"></i>Budget Calculator
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="budgetCalculator">
+                        <div class="mb-3">
+                            <label for="monthlyIncome" class="form-label">Monthly Income</label>
+                            <input type="number" class="form-control" id="monthlyIncome" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rent" class="form-label">Rent</label>
+                            <input type="number" class="form-control" id="rent" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="utilities" class="form-label">Utilities</label>
+                            <input type="number" class="form-control" id="utilities" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="groceries" class="form-label">Groceries</label>
+                            <input type="number" class="form-control" id="groceries" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-calculator me-2"></i>Calculate Budget
+                        </button>
+                    </form>
+                    <div id="budgetResult" class="mt-3" style="display: none;">
+                        <h6>Budget Summary:</h6>
+                        <div class="progress mb-2">
+                            <div id="expensesProgress" class="progress-bar" role="progressbar"></div>
+                        </div>
+                        <p id="budgetSummary" class="mb-0"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Parse the chart data
+        const chartData = JSON.parse('{{ chart_data|safe }}');
+        console.log('Raw Chart Data:', chartData);
+        
+        const historicalData = chartData.historical || {};
+        const predictedData = chartData.predicted || {};
+        
+        console.log('Historical Data:', historicalData);
+        console.log('Predicted Data:', predictedData);
+        
+        // Get all years and sort them
+        const years = [...new Set([
+            ...Object.keys(historicalData),
+            ...Object.keys(predictedData)
+        ])].sort((a, b) => parseInt(a) - parseInt(b));
+        
+        console.log('Years:', years);
+        
+        // Create data arrays
+        const historicalValues = years.map(year => historicalData[year] || null);
+        const predictedValues = years.map(year => predictedData[year] || null);
+        
+        console.log('Historical Values:', historicalValues);
+        console.log('Predicted Values:', predictedValues);
+        
+        // Get the canvas context
+        const ctx = document.getElementById('costTrendsChart').getContext('2d');
+        
+        // Create the chart
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: years,
+                datasets: [
+                    {
+                        label: 'Historical Rent',
+                        data: historicalValues,
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Predicted Rent',
+                        data: predictedValues,
+                        borderColor: 'rgb(255, 159, 64)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderDash: [5, 5],
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Monthly Rent Trends and Predictions',
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += '£' + context.parsed.y.toFixed(2);
+                                }
+                                return label;
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Year'
+                        }
+                    },
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Monthly Rent (£)',
+                            font: {
+                                size: 12,
+                                weight: 'bold'
+                            }
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '£' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error creating chart:', error);
+        console.error('Chart data:', '{{ chart_data|safe }}');
+    }
+
+    // Budget Calculator
+    const budgetForm = document.getElementById('budgetCalculator');
+    const budgetResult = document.getElementById('budgetResult');
+    const progressBar = document.getElementById('expensesProgress');
+    const summaryDiv = document.getElementById('budgetSummary');
+
+    budgetForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        try {
+            // Get input values
+            const income = parseFloat(document.getElementById('monthlyIncome').value) || 0;
+            const rent = parseFloat(document.getElementById('rent').value) || 0;
+            const utilities = parseFloat(document.getElementById('utilities').value) || 0;
+            const groceries = parseFloat(document.getElementById('groceries').value) || 0;
+            
+            // Validate inputs
+            if (income <= 0) {
+                alert('Please enter a valid monthly income greater than 0');
+                return;
+            }
+            
+            if (rent < 0 || utilities < 0 || groceries < 0) {
+                alert('Expenses cannot be negative');
+                return;
+            }
+            
+            // Calculate budget
+            const totalExpenses = rent + utilities + groceries;
+            const remaining = income - totalExpenses;
+            const expensesPercentage = Math.min((totalExpenses / income) * 100, 100);
+            
+            // Update progress bar
+            progressBar.style.width = expensesPercentage + '%';
+            progressBar.textContent = expensesPercentage.toFixed(1) + '%';
+            
+            // Set progress bar color based on percentage
+            if (expensesPercentage >= 90) {
+                progressBar.className = 'progress-bar bg-danger';
+            } else if (expensesPercentage >= 75) {
+                progressBar.className = 'progress-bar bg-warning';
+            } else {
+                progressBar.className = 'progress-bar bg-success';
+            }
+            
+            // Format currency values
+            const formatCurrency = (value) => {
+                return new Intl.NumberFormat('en-GB', {
+                    style: 'currency',
+                    currency: 'GBP'
+                }).format(value);
+            };
+            
+            // Create summary
+            let summary = `
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>Total Income:</strong>
+                        <span>${formatCurrency(income)}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>Total Expenses:</strong>
+                        <span>${formatCurrency(totalExpenses)}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>Remaining Budget:</strong>
+                        <span class="${remaining >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(remaining)}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <strong>Expenses/Income:</strong>
+                        <span>${expensesPercentage.toFixed(1)}%</span>
+                    </div>
+                </div>
+            `;
+            
+            // Update summary and show results
+            summaryDiv.innerHTML = summary;
+            budgetResult.style.display = 'block';
+            
+            // Add recommendations if needed
+            if (expensesPercentage > 75) {
+                summaryDiv.innerHTML += `
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Your expenses are ${expensesPercentage > 100 ? 'exceeding' : 'approaching'} your income. 
+                        Consider reviewing your budget or finding ways to reduce expenses.
+                    </div>
+                `;
+            }
+            
+        } catch (error) {
+            console.error('Budget calculation error:', error);
+            alert('An error occurred while calculating your budget. Please check your inputs and try again.');
+        }
+    });
+
+    // Add input validation
+    const numberInputs = budgetForm.querySelectorAll('input[type="number"]');
+    numberInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            if (this.value < 0) {
+                this.value = 0;
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.progress {
+    height: 25px;
+    font-size: 14px;
+    line-height: 25px;
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+.badge {
+    font-size: 85%;
+}
+</style>
+{% endblock %} 
