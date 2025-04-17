@@ -25,7 +25,7 @@ A Django web application that predicts future costs of living (rent, petrol, and
 
 ```bash
 git clone <repository-url>
-cd cost-living-predictor
+cd FYP
 ```
 
 2. Run the setup script:
