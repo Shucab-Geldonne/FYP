@@ -1,67 +1,87 @@
-# Cost of Living Prediction System
+# Cost of Living Predictor
 
-This project uses machine learning (PyTorch) to predict cost of living based on various factors. The system is built with Django for the web interface and PyTorch for the machine learning components.
+A Django web application that predicts future costs of living (rent, petrol, and food) using linear regression models based on historical data.
 
 ## Features
 
-- Cost of living prediction using machine learning
-- User-friendly web interface
-- Data visualization and analysis
-- Interactive prediction form
+- User authentication and authorization
+- Historical cost data visualization
+- Future cost predictions using linear regression
+- Interactive dashboard with charts and trends
+- Event management system
+- User profile management
 
-## Setup Instructions
+## Technical Stack
 
-1. Create a virtual environment:
+- **Backend**: Django 5.0.2
+- **Data Processing**: NumPy, Pandas
+- **Machine Learning**: scikit-learn (Linear Regression)
+- **Frontend**: Bootstrap 4, Chart.js
+- **Database**: SQLite (development)
 
-```bash
-python -m venv venv
-```
+## Installation
 
-2. Activate the virtual environment:
-
-- Windows:
-
-```bash
-venv\Scripts\activate
-```
-
-- Unix/MacOS:
+1. Clone the repository:
 
 ```bash
-source venv/bin/activate
+git clone <repository-url>
+cd cost-living-predictor
 ```
 
-3. Install dependencies:
+2. Run the setup script:
 
 ```bash
-pip install -r requirements.txt
+# On Windows
+.\setup_and_test.bat
 ```
 
-4. Run migrations:
+The setup script will:
 
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
+- Create and activate a virtual environment
+- Install all required dependencies
+- Run database migrations
+- Create a default admin user (username: admin, password: admin)
+- Start the development server
 
-5. Start the development server:
-
-```bash
-python manage.py runserver
-```
+Once the server starts, you can access the application at http://127.0.0.1:8000/
 
 ## Project Structure
 
-- `cost_living_predictor/` - Main Django project directory
-- `ml_model/` - Machine learning model and related components
-- `predictor/` - Django app for handling predictions
-- `data/` - Directory for dataset storage
+- `cost_living_predictor/`: Main project configuration
+- `predictor/`: Main application
+  - `models.py`: Database models
+  - `views.py`: View logic and prediction handling
+  - `simple_model.py`: Linear regression prediction models
+  - `templates/`: HTML templates
+  - `static/`: CSS, JavaScript, and other static files
+- `accounts/`: User authentication and profile management
+- `historical_costs.csv`: Historical data for training models
 
-## Technology Stack
+## Prediction Model
 
-- Django 5.0.2
-- PyTorch 2.2.0
-- Python 3.x
-- scikit-learn
-- pandas
-- numpy
+The application uses linear regression models to predict future costs:
+
+- Separate models for rent, petrol, and food costs
+- Trained on historical data from `historical_costs.csv`
+- Predictions are made based on yearly trends
+- Includes reasonable bounds to prevent unrealistic predictions
+
+## Usage
+
+1. Log in to the application
+2. View historical data and trends on the dashboard
+3. Make predictions for future years
+4. Manage your profile and events
+5. View and analyze cost trends
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
