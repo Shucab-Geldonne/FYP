@@ -17,7 +17,6 @@ from sklearn.preprocessing import MinMaxScaler
 from numpy.core.multiarray import _reconstruct
 from numpy.dtypes import Float32DType, Float64DType
 import joblib
-from .ml_utils import CostPredictor
 from .simple_model import train_model, predict
 import traceback
 
@@ -379,7 +378,6 @@ def profile(request):
 def dashboard(request):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     csv_path = os.path.join(base_dir, 'historical_costs.csv')
-    model_path = os.path.join(base_dir, 'predictor', 'models', 'simple_cost_predictor.pth')
     
     try:
         # Load historical data
@@ -400,15 +398,14 @@ def dashboard(request):
         latest_year = max(int(year) for year in historical_data.keys())
         future_years = range(latest_year + 1, latest_year + 6)
         
-        if os.path.exists(model_path):
-            checkpoint = torch.load(model_path, weights_only=False)
-            model = SimpleNN()
-            model.load_state_dict(checkpoint['model_state_dict'])
-            X_scaler = checkpoint['X_scaler']
-            scalers = (checkpoint['rent_scaler'], checkpoint['petrol_scaler'], checkpoint['food_scaler'])
-            
-            for year in future_years:
-                predictions = predict(model, year, X_scaler, scalers)
+        # Use the trained models
+        if GLOBAL_MODEL is None:
+            if not initialize_model():
+                raise Exception("Failed to initialize models")
+        
+        for year in future_years:
+            predictions = predict(year, GLOBAL_MODEL)
+            if predictions is not None:
                 predicted_data[str(year)] = float(predictions['rent'])
         
         # Prepare data for the chart
