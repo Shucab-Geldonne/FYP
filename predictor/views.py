@@ -6,8 +6,6 @@ from .models import CostOfLivingData, Event
 from .forms import CostOfLivingForm
 import os
 os.environ['NUMPY_EXPERIMENTAL_ARRAY_FUNCTION'] = '0'
-import torch
-import torch.nn as nn
 import numpy as np
 from django.http import JsonResponse
 from django.utils import timezone
@@ -20,80 +18,36 @@ from numpy.core.multiarray import _reconstruct
 from numpy.dtypes import Float32DType, Float64DType
 import joblib
 from .ml_utils import CostPredictor
-from .simple_model import SimpleCostPredictor, train_model, predict
+from .simple_model import train_model, predict
 import traceback
 
-# Global variables to store the model and scalers
+# Global variable to store the trained models
 GLOBAL_MODEL = None
-GLOBAL_X_SCALER = None
-GLOBAL_SCALERS = None
 
 def initialize_model():
-    """Initialize the model at startup"""
-    global GLOBAL_MODEL, GLOBAL_X_SCALER, GLOBAL_SCALERS
+    """Initialize the models at startup"""
+    global GLOBAL_MODEL
     
     try:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        model_path = os.path.join(base_dir, 'predictor', 'models', 'simple_cost_predictor.pth')
-        
-        # Create models directory if it doesn't exist
-        os.makedirs(os.path.dirname(model_path), exist_ok=True)
-        
-        # Check if model file exists
-        if os.path.exists(model_path):
-            print("Loading existing model...")
-            checkpoint = torch.load(model_path)
-            model = SimpleCostPredictor()
-            model.load_state_dict(checkpoint['model_state_dict'])
-            GLOBAL_MODEL = model
-            GLOBAL_X_SCALER = checkpoint['X_scaler']
-            GLOBAL_SCALERS = (checkpoint['rent_scaler'], checkpoint['petrol_scaler'], checkpoint['food_scaler'])
-            print("Model loaded successfully")
-            return True
-        
-        # Only train if model doesn't exist
-        print("Training new model (this will only happen once)...")
         csv_path = os.path.join(base_dir, 'historical_costs.csv')
-        model, X_scaler, scalers = train_model(csv_path)
         
-        # Save the model and scalers globally
-        GLOBAL_MODEL = model
-        GLOBAL_X_SCALER = X_scaler
-        GLOBAL_SCALERS = scalers
+        # Train models
+        model_data = train_model(csv_path)
+        if model_data is None:
+            raise Exception("Failed to train models")
         
-        # Save to disk
-        torch.save({
-            'model_state_dict': model.state_dict(),
-            'X_scaler': X_scaler,
-            'rent_scaler': scalers[0],
-            'petrol_scaler': scalers[1],
-            'food_scaler': scalers[2]
-        }, model_path)
-        print("Model trained and saved successfully")
+        # Store the models globally
+        GLOBAL_MODEL = model_data
+        print("Models trained successfully")
         return True
     except Exception as e:
-        print(f"Error initializing model: {str(e)}")
+        print(f"Error initializing models: {str(e)}")
         traceback.print_exc()
         return False
 
-# Initialize the model when the module is loaded
+# Initialize the models when the module is loaded
 initialize_model()
-
-class SimpleNN(nn.Module):
-    def __init__(self):
-        super(SimpleNN, self).__init__()
-        self.model = nn.Sequential(
-            nn.Linear(1, 64),    # model.0
-            nn.ReLU(),          # model.1
-            nn.Linear(64, 32),   # model.2
-            nn.ReLU(),          # model.3
-            nn.Linear(32, 16),   # model.4
-            nn.ReLU(),          # model.5
-            nn.Linear(16, 3)     # model.6
-        )
-
-    def forward(self, x):
-        return self.model(x)
 
 def load_model():
     try:
@@ -225,13 +179,13 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
             selected_year = int(request.POST.get('year'))
             context['selected_year'] = selected_year
             
-            # Use the global model
+            # Use the trained models
             if GLOBAL_MODEL is None:
                 if not initialize_model():
-                    raise Exception("Failed to initialize model")
+                    raise Exception("Failed to initialize models")
             
-            # Make prediction using global model
-            predictions = predict(GLOBAL_MODEL, selected_year, GLOBAL_X_SCALER, GLOBAL_SCALERS)
+            # Make prediction using linear regression models
+            predictions = predict(selected_year, GLOBAL_MODEL)
             if predictions is None:
                 raise Exception("Failed to generate predictions")
             
@@ -448,7 +402,7 @@ def dashboard(request):
         
         if os.path.exists(model_path):
             checkpoint = torch.load(model_path, weights_only=False)
-            model = SimpleCostPredictor()
+            model = SimpleNN()
             model.load_state_dict(checkpoint['model_state_dict'])
             X_scaler = checkpoint['X_scaler']
             scalers = (checkpoint['rent_scaler'], checkpoint['petrol_scaler'], checkpoint['food_scaler'])
