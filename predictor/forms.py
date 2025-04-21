@@ -7,6 +7,15 @@ class CostOfLivingForm(forms.ModelForm):
     class Meta:
         model = CostOfLivingData
         fields = ['city', 'country', 'rent', 'groceries', 'utilities', 'transportation', 'income']
+        widgets = {
+            'city': forms.TextInput(attrs={'class': 'form-control'}),
+            'country': forms.TextInput(attrs={'class': 'form-control'}),
+            'rent': forms.NumberInput(attrs={'class': 'form-control'}),
+            'groceries': forms.NumberInput(attrs={'class': 'form-control'}),
+            'utilities': forms.NumberInput(attrs={'class': 'form-control'}),
+            'transportation': forms.NumberInput(attrs={'class': 'form-control'}),
+            'income': forms.NumberInput(attrs={'class': 'form-control'})
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
