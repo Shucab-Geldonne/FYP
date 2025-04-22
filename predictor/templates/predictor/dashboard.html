@@ -26,10 +26,19 @@
     <div class="row mb-4">
         <div class="col-md-8">
             <div class="card shadow">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-chart-bar me-2"></i>Cost Trends (2021-2027)
                     </h5>
+                    <div class="chart-navigation">
+                        <button class="btn btn-sm btn-light me-2" id="prevChart">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="chartTitle" class="text-white">Monthly Rent</span>
+                        <button class="btn btn-sm btn-light ms-2" id="nextChart">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body" style="height: 400px;">
                     <canvas id="costTrendsChart"></canvas>
@@ -164,124 +173,171 @@ document.addEventListener('DOMContentLoaded', function() {
         const historicalData = chartData.historical || {};
         const predictedData = chartData.predicted || {};
         
-        console.log('Historical Data:', historicalData);
-        console.log('Predicted Data:', predictedData);
+        // Define chart configurations for each category
+        const chartConfigs = {
+            rent: {
+                title: 'Monthly Rent',
+                yAxisLabel: 'Monthly Rent (£)',
+                historicalLabel: 'Historical Rent',
+                predictedLabel: 'Predicted Rent',
+                color: 'rgb(54, 162, 235)'
+            },
+            petrol: {
+                title: 'Petrol Price',
+                yAxisLabel: 'Price per Litre (£)',
+                historicalLabel: 'Historical Petrol Price',
+                predictedLabel: 'Predicted Petrol Price',
+                color: 'rgb(255, 99, 132)'
+            },
+            food: {
+                title: 'Weekly Food Cost',
+                yAxisLabel: 'Weekly Cost (£)',
+                historicalLabel: 'Historical Food Cost',
+                predictedLabel: 'Predicted Food Cost',
+                color: 'rgb(75, 192, 192)'
+            }
+        };
         
         // Get all years and sort them
         const years = [...new Set([
-            ...Object.keys(historicalData),
-            ...Object.keys(predictedData)
+            ...Object.keys(historicalData.rent || {}),
+            ...Object.keys(predictedData.rent || {})
         ])].sort((a, b) => parseInt(a) - parseInt(b));
         
-        console.log('Years:', years);
-        
-        // Create data arrays
-        const historicalValues = years.map(year => historicalData[year] || null);
-        const predictedValues = years.map(year => predictedData[year] || null);
-        
-        console.log('Historical Values:', historicalValues);
-        console.log('Predicted Values:', predictedValues);
-        
-        // Get the canvas context
+        // Initialize chart
         const ctx = document.getElementById('costTrendsChart').getContext('2d');
+        let currentChart = null;
+        let currentCategory = 'rent';
         
-        // Create the chart
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: years,
-                datasets: [
-                    {
-                        label: 'Historical Rent',
-                        data: historicalValues,
-                        borderColor: 'rgb(54, 162, 235)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
-                    },
-                    {
-                        label: 'Predicted Rent',
-                        data: predictedValues,
-                        borderColor: 'rgb(255, 159, 64)',
-                        backgroundColor: 'rgba(255, 159, 64, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        borderDash: [5, 5],
-                        pointRadius: 4,
-                        pointHoverRadius: 6
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Monthly Rent Trends and Predictions',
-                        font: {
-                            size: 16,
-                            weight: 'bold'
-                        }
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    label += '£' + context.parsed.y.toFixed(2);
-                                }
-                                return label;
-                            }
-                        }
-                    },
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 15
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: {
-                            display: false
+        function createChart(category) {
+            const config = chartConfigs[category];
+            
+            // Create data arrays
+            const historicalValues = years.map(year => historicalData[category][year] || null);
+            const predictedValues = years.map(year => predictedData[category][year] || null);
+            
+            if (currentChart) {
+                currentChart.destroy();
+            }
+            
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [
+                        {
+                            label: config.historicalLabel,
+                            data: historicalValues,
+                            borderColor: config.color,
+                            backgroundColor: config.color.replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
                         },
-                        title: {
-                            display: true,
-                            text: 'Year'
+                        {
+                            label: config.predictedLabel,
+                            data: predictedValues,
+                            borderColor: config.color,
+                            backgroundColor: config.color.replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                            fill: true,
+                            tension: 0.4,
+                            borderDash: [5, 5],
+                            pointRadius: 4,
+                            pointHoverRadius: 6
                         }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
                     },
-                    y: {
-                        beginAtZero: false,
+                    plugins: {
                         title: {
                             display: true,
-                            text: 'Monthly Rent (£)',
+                            text: config.title + ' Trends and Predictions',
                             font: {
-                                size: 12,
+                                size: 16,
                                 weight: 'bold'
                             }
                         },
-                        ticks: {
-                            callback: function(value) {
-                                return '£' + value;
+                        tooltip: {
+                            mode: 'index',
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += '£' + context.parsed.y.toFixed(2);
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Year'
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: config.yAxisLabel,
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '£' + parseFloat(value).toFixed(2);
+                                }
                             }
                         }
                     }
                 }
-            }
+            });
+            
+            // Update chart title
+            document.getElementById('chartTitle').textContent = config.title;
+        }
+        
+        // Initialize with rent chart
+        createChart('rent');
+        
+        // Navigation buttons
+        const categories = ['rent', 'petrol', 'food'];
+        let currentIndex = 0;
+        
+        document.getElementById('prevChart').addEventListener('click', function() {
+            currentIndex = (currentIndex - 1 + categories.length) % categories.length;
+            createChart(categories[currentIndex]);
         });
+        
+        document.getElementById('nextChart').addEventListener('click', function() {
+            currentIndex = (currentIndex + 1) % categories.length;
+            createChart(categories[currentIndex]);
+        });
+        
     } catch (error) {
         console.error('Error creating chart:', error);
         console.error('Chart data:', '{{ chart_data|safe }}');
@@ -418,6 +474,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .badge {
     font-size: 85%;
+}
+
+.chart-navigation {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#chartTitle {
+    min-width: 120px;
+    text-align: center;
 }
 </style>
 {% endblock %} 

@@ -28,4 +28,8 @@ build/
 *.dll
 *.lib
 *.so
-*.dylib 
+*.dylib
+
+# Database
+db.sqlite3
+db.sqlite3-journal 

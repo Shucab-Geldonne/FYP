@@ -19,6 +19,7 @@ from numpy.dtypes import Float32DType, Float64DType
 import joblib
 from .simple_model import train_model, predict
 import traceback
+from django.urls import path
 
 # Global variable to store the trained models
 GLOBAL_MODEL = None
@@ -387,15 +388,27 @@ def dashboard(request):
         df = df.dropna()
         df = df.sort_values('Year')
         
-        # Prepare historical data
-        historical_data = {}
+        # Prepare historical data for all categories
+        historical_data = {
+            'rent': {},
+            'petrol': {},
+            'food': {}
+        }
+        
         for _, row in df.iterrows():
             year = str(int(row['Year']))
-            historical_data[year] = float(row['Average Monthly Rent (England) (£)'])
+            historical_data['rent'][year] = float(row['Average Monthly Rent (England) (£)'])
+            historical_data['petrol'][year] = float(row['Petrol Price (£/litre)'])
+            historical_data['food'][year] = float(row['Weekly Food Expenditure (£)'])
         
         # Get predictions for future years
-        predicted_data = {}
-        latest_year = max(int(year) for year in historical_data.keys())
+        predicted_data = {
+            'rent': {},
+            'petrol': {},
+            'food': {}
+        }
+        
+        latest_year = max(int(year) for year in historical_data['rent'].keys())
         future_years = range(latest_year + 1, latest_year + 6)
         
         # Use the trained models
@@ -406,7 +419,9 @@ def dashboard(request):
         for year in future_years:
             predictions = predict(year, GLOBAL_MODEL)
             if predictions is not None:
-                predicted_data[str(year)] = float(predictions['rent'])
+                predicted_data['rent'][str(year)] = float(predictions['rent'])
+                predicted_data['petrol'][str(year)] = float(predictions['petrol'])
+                predicted_data['food'][str(year)] = float(predictions['food'])
         
         # Prepare data for the chart
         chart_data = {
@@ -418,34 +433,36 @@ def dashboard(request):
         recent_predictions = []
         
         # Add historical data
-        for year, rent in historical_data.items():
+        for year in historical_data['rent'].keys():
             year_int = int(year)
             if year_int >= latest_year - 2:  # Show last 3 years of historical data
                 previous_year = str(year_int - 1)
-                previous_cost = historical_data.get(previous_year)
-                change = ((rent - previous_cost) / previous_cost * 100) if previous_cost else 0
+                previous_cost = historical_data['rent'].get(previous_year)
+                current_cost = historical_data['rent'][year]
+                change = ((current_cost - previous_cost) / previous_cost * 100) if previous_cost else 0
                 
                 recent_predictions.append({
                     'year': year,
-                    'cost': rent,
+                    'cost': current_cost,
                     'change': change,
                     'is_prediction': False
                 })
         
         # Add predicted data
-        for year, rent in predicted_data.items():
+        for year in predicted_data['rent'].keys():
             year_int = int(year)
             previous_year = str(year_int - 1)
-            previous_cost = predicted_data.get(previous_year) or historical_data.get(previous_year)
+            previous_cost = predicted_data['rent'].get(previous_year) or historical_data['rent'].get(previous_year)
+            current_cost = predicted_data['rent'][year]
             
             if previous_cost:
-                change = ((rent - previous_cost) / previous_cost * 100)
+                change = ((current_cost - previous_cost) / previous_cost * 100)
             else:
                 change = 0
                 
             recent_predictions.append({
                 'year': year,
-                'cost': rent,
+                'cost': current_cost,
                 'change': change,
                 'is_prediction': True
             })
@@ -467,34 +484,4 @@ def dashboard(request):
             'chart_data': json.dumps({'historical': {}, 'predicted': {}}),
             'recent_predictions': []
         })
-
-@login_required
-def change_password(request):
-    if request.method == 'POST':
-        old_password = request.POST.get('old_password')
-        new_password1 = request.POST.get('new_password1')
-        new_password2 = request.POST.get('new_password2')
-
-        if not request.user.check_password(old_password):
-            messages.error(request, 'Your current password is incorrect.')
-            return redirect('profile')
-
-        if new_password1 != new_password2:
-            messages.error(request, 'New passwords do not match.')
-            return redirect('profile')
-
-        if len(new_password1) < 8:
-            messages.error(request, 'Password must be at least 8 characters long.')
-            return redirect('profile')
-
-        if not any(char.isdigit() for char in new_password1) or not any(char.isalpha() for char in new_password1):
-            messages.error(request, 'Password must contain both letters and numbers.')
-            return redirect('profile')
-
-        request.user.set_password(new_password1)
-        request.user.save()
-        messages.success(request, 'Your password has been changed successfully.')
-        return redirect('profile')
-
-    return redirect('profile')
 
