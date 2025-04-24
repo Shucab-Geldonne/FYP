@@ -11,7 +11,7 @@ def calculate_trends(data):
     data['food_change'] = data['Weekly Food Expenditure (£)'].pct_change()
     
     # Calculate average changes over the last 5 years
-    recent_data = data.tail(5)
+    recent_data = data.tail(10)
     avg_rent_change = recent_data['rent_change'].mean()
     avg_petrol_change = recent_data['petrol_change'].mean()
     avg_food_change = recent_data['food_change'].mean()
