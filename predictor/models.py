@@ -12,3 +12,14 @@ class Event(models.Model):
 
     def __str__(self):
         return self.title
+
+class Prediction(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField()
+    rent_prediction = models.DecimalField(max_digits=10, decimal_places=2)
+    petrol_prediction = models.DecimalField(max_digits=10, decimal_places=2)
+    food_prediction = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Prediction for {self.date} by {self.user.username}"
