@@ -2,78 +2,32 @@
 
 A Django web application that predicts future cost of living changes based on historical data.
 
-## Installation
+## Quick Start
 
-### For Windows Users:
+1. **Install Python 3.12**
 
-1. Clone the repository
-2. Run the setup script:
-   ```bash
-   .\setup_and_test.bat
-   ```
+   - Download from [python.org](https://www.python.org/downloads/)
+   - Make sure to check "Add Python to PATH" during installation
 
-### For Mac Users:
-
-1. **Prerequisites**:
-
-   - Install Python 3.x (if not already installed)
-   - Install pip (Python package manager)
-
-2. **Setup Steps**:
-
-   a. **Clone the repository**:
+2. **Set up the project**
 
    ```bash
-   git clone https://github.com/Shucab-Geldonne/FYP.git
-   cd finalYearProject4
-   ```
+   # Create and activate virtual environment
+   python -m venv venv
+   venv\Scripts\activate  # On Windows
+   source venv/bin/activate  # On Mac/Linux
 
-   b. **Create and activate a virtual environment**:
-
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-
-   c. **Install dependencies**:
-
-   ```bash
+   # Install dependencies
+   python -m pip install --upgrade pip setuptools wheel
    pip install -r requirements.txt
-   ```
 
-   d. **Run migrations**:
-
-   ```bash
+   # Run migrations and start server
    python manage.py migrate
-   ```
-
-   e. **Start the development server**:
-
-   ```bash
    python manage.py runserver
    ```
 
-3. **Access the application**:
-   - Open a web browser and go to `http://127.0.0.1:8000/`
-
-**Troubleshooting Tips for Mac Users**:
-
-1. If you encounter permission issues, you might need to use `sudo` for some commands
-2. If you get any SSL-related errors, you might need to install the SSL certificates:
-   ```bash
-   /Applications/Python\ 3.x/Install\ Certificates.command
-   ```
-3. If you have multiple Python versions installed, make sure to use `python3` explicitly
-
-The setup script will:
-
-- Create a virtual environment
-- Install all required dependencies
-- Run database migrations
-- Create a default admin user (username: admin, password: admin)
-- Start the development server
-
-The application will be available at: http://127.0.0.1:8000/
+3. **Access the application**
+   - Open your browser and go to `http://127.0.0.1:8000/`
 
 ## Features
 
@@ -83,24 +37,46 @@ The application will be available at: http://127.0.0.1:8000/
 - Event calendar
 - Cost tracking and analysis
 
-## Requirements
+## Troubleshooting
 
-- Python 3.8 or higher
-- pip (Python package installer)
-- Virtual environment (created automatically by the setup script)
+If you encounter any issues:
+
+1. **Python not found**
+
+   - Make sure Python is added to your PATH
+   - Try using `python -m pip` instead of just `pip`
+
+2. **Installation errors**
+
+   ```bash
+   # Upgrade pip and build tools
+   python -m pip install --upgrade pip setuptools wheel
+
+   # Try installing requirements again
+   pip install -r requirements.txt
+   ```
+
+3. **SSL errors**
+   ```bash
+   python -m pip install --upgrade certifi
+   ```
 
 ## Project Structure
 
-- `predictor/` - Main application directory
-  - `models.py` - Database models
-  - `views.py` - View functions and classes
-  - `urls.py` - URL routing
-  - `templates/` - HTML templates
-  - `static/` - Static files (CSS, JavaScript, images)
-- `cost_living_predictor/` - Project settings
-- `requirements.txt` - Python dependencies
-- `setup_and_test.bat` - Windows setup script
-- `setup_and_test.sh` - Mac setup script
+```
+predictor/              # Main application
+├── models.py          # Database models
+├── views.py           # View functions
+├── urls.py            # URL routing
+├── templates/         # HTML templates
+└── static/           # CSS, JavaScript, images
+```
+
+## Requirements
+
+- Python 3.12
+- pip (Python package installer)
+- Virtual environment
 
 ## License
 
