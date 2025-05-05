@@ -18,6 +18,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM Upgrade pip, setuptools and wheel
+echo Upgrading pip, setuptools and wheel...
+python -m pip install --upgrade pip setuptools wheel
+if errorlevel 1 (
+    echo Failed to upgrade pip, setuptools and wheel
+    exit /b 1
+)
+
 REM Install packages one by one with verification
 echo Installing Django...
 pip install Django==5.0.2
@@ -27,21 +35,21 @@ if errorlevel 1 (
 )
 
 echo Installing numpy...
-pip install numpy>=1.21.0,<2.0.0
+pip install numpy==1.26.4
 if errorlevel 1 (
     echo Failed to install numpy
     exit /b 1
 )
 
 echo Installing pandas...
-pip install pandas>=2.1.4
+pip install pandas==2.2.1
 if errorlevel 1 (
     echo Failed to install pandas
     exit /b 1
 )
 
 echo Installing scikit-learn...
-pip install scikit-learn>=1.3.2
+pip install scikit-learn==1.4.1.post1
 if errorlevel 1 (
     echo Failed to install scikit-learn
     exit /b 1
