@@ -12,17 +12,15 @@ A Django web application that predicts future cost of living changes based on hi
 2. **Set up the project**
 
    ```bash
-   # Create and activate virtual environment
+   # Create and activate virtual environment (OPTIONAL - IF NOT COMPLETED THEN JUST RUN THE SERVER)
    python -m venv venv
    venv\Scripts\activate  # On Windows
    source venv/bin/activate  # On Mac/Linux
 
    # Install dependencies
-   python -m pip install --upgrade pip setuptools wheel
    pip install -r requirements.txt
 
-   # Run migrations and start server
-   python manage.py migrate
+   # Start server
    python manage.py runserver
    ```
 
@@ -32,7 +30,7 @@ A Django web application that predicts future cost of living changes based on hi
 ## Features
 
 - Cost prediction based on historical data
-- User authentication and authorization
+- User authentication and authorisation
 - Interactive dashboard
 - Event calendar
 - Cost tracking and analysis
