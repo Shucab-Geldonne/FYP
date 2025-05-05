@@ -24,7 +24,7 @@ A Django web application that predicts future cost of living changes based on hi
    a. **Clone the repository**:
 
    ```bash
-   git clone [your-repository-url]
+   git clone https://github.com/Shucab-Geldonne/FYP.git
    cd finalYearProject4
    ```
 
